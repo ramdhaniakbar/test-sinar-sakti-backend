@@ -4,10 +4,10 @@ const pagination = (req: any, data: any) => {
 
    const pagination = {
       count_data: count,
-      limit: req.limit,
+      limit: parseInt(req.limit),
       total_page: total_page,
       previous_page: req.page == 1 ? null : parseInt(req.page) - 1,
-      current_page: req.page,
+      current_page: parseInt(req.page),
       next_page: req.page == total_page || total_page == 0 ? null : parseInt(req.page) + 1,
    }
 

@@ -6,6 +6,7 @@ type EmployeeAttributes = {
   nama: string;
   nomor: string;
   jabatan: string;
+  departemen: string;
   tanggal_masuk: Date;
   foto: string;
   status: string;
@@ -18,6 +19,7 @@ class Employee extends Model<EmployeeAttributes, EmployeeCreationAttributes> {
   declare nama: string;
   declare nomor: string;
   declare jabatan: string;
+  declare departemen: string; 
   declare tanggal_masuk: Date;
   declare foto: string;
   declare status: string;
@@ -37,6 +39,7 @@ export function initializeEmployee(sequelize: Sequelize) {
       nama: DataTypes.STRING,
       nomor: DataTypes.STRING,
       jabatan: DataTypes.STRING,
+      departemen: DataTypes.STRING,
       tanggal_masuk: DataTypes.DATE,
       foto: DataTypes.TEXT,
       status: DataTypes.STRING,
