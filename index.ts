@@ -1,6 +1,7 @@
 const express = require('express')
 import dotenv from "dotenv"
 import cors from "cors"
+import fileUpload from 'express-fileupload'
 import cookieParser from "cookie-parser"
 import { Application, Request, Response } from "express"
 // Routes
@@ -13,6 +14,7 @@ app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser())
+app.use(fileUpload())
 
 // PORT
 const port = process.env.PORT || 8000

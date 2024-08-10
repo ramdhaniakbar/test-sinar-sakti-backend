@@ -3,6 +3,10 @@ import { Request, Response } from "express"
 import response from "../helpers/responseHelper"
 import pagination from "../helpers/paginationHelper"
 import { validationResult } from "express-validator"
+import { UploadedFile } from "express-fileupload"
+import path from "path"
+import fs from "fs"
+import moment from "moment"
 
 const getAllEmployees = async (req: Request, res: Response) => {
   //---- Validation
@@ -60,14 +64,49 @@ const createEmployee = async (req: Request, res: Response) => {
   if (!validate.isEmpty()) {
     return response.errorValidate(res, 400, validate.array())
   }
+
+  const t = await db.sequelize.transaction()
   try {
-    const employee = await db.Employee.create({
-      ...req.body,
-      tanggal_masuk: new Date(),
-    })
+    const employee = await db.Employee.create(
+      {
+        ...req.body,
+        tanggal_masuk: new Date(),
+      },
+      { transaction: t }
+    )
+
+    let fileUrl: string = null
+    if (req.files) {
+      const file = req.files.foto as UploadedFile
+      const filename =
+        moment().format("YYYY-MM-DD-HHmmss") +
+        Math.floor(10000 + Math.random() * 90000) +
+        "." +
+        file.name.split(".").pop()
+
+      const uploadPath = path.join(__dirname + "/../../uploads", filename)
+
+      if (!fs.existsSync(path.dirname(uploadPath))) {
+        fs.mkdirSync(path.dirname(uploadPath), { recursive: true })
+      }
+
+      file.mv(uploadPath, async (error) => {
+        if (error) {
+          await t.rollback()
+          return response.errorResponse(res, 400, error.message)
+        }
+      })
+
+      fileUrl = "uploads" + uploadPath.split("/uploads").pop()
+    }
+
+    employee.foto = fileUrl
+    await employee.save({ transaction: t })
+    await t.commit()
 
     return response.successResponse(res, 200, "Success create data", employee)
   } catch (error) {
+    await t.rollback()
     console.log(error)
     return response.errorResponse(res, 500, "Internal server error")
   }
@@ -106,6 +145,7 @@ const updateEmployee = async (req: Request, res: Response) => {
   if (!validate.isEmpty()) {
     return response.errorValidate(res, 400, validate.array())
   }
+  const t = await db.sequelize.transaction()
   try {
     let id: number
 
@@ -120,11 +160,51 @@ const updateEmployee = async (req: Request, res: Response) => {
       return response.errorResponse(res, 404, "Karyawan tidak ditemukan")
     }
 
-    await db.Employee.update(req.body, { where: { id } })
-    await employee.reload()
+    await db.Employee.update(req.body, { where: { id }, transaction: t })
+
+    let fileUrl: string = null
+    if (req.files) {
+      const file = req.files.foto as UploadedFile
+      const filename =
+        moment().format("YYYY-MM-DD-HHmmss") +
+        Math.floor(10000 + Math.random() * 90000) +
+        "." +
+        file.name.split(".").pop()
+
+      const uploadPath = path.join(__dirname + "/../../uploads", filename)
+
+      if (!fs.existsSync(path.dirname(uploadPath))) {
+        fs.mkdirSync(path.dirname(uploadPath), { recursive: true })
+      }
+
+      file.mv(uploadPath, async (error) => {
+        if (error) {
+          await t.rollback()
+          return response.errorResponse(res, 400, error.message)
+        }
+      })
+
+      if (employee.foto && !employee.foto.startsWith("https")) {
+        fs.unlink(__dirname + "/../../" + employee.foto, async (error) => {
+          if (error) {
+            await t.rollback()
+            return response.errorResponse(res, 400, error.message)
+          }
+        })
+      }
+
+      fileUrl = "uploads" + uploadPath.split("/uploads").pop()
+
+      employee.foto = fileUrl
+      await employee.save({ transaction: t })
+    }
+
+    await employee.reload({ transaction: t })
+    await t.commit()
 
     return response.successResponse(res, 200, "Success update data", employee)
   } catch (error) {
+    await t.rollback()
     console.log(error)
     return response.errorResponse(res, 500, "Internal server error")
   }

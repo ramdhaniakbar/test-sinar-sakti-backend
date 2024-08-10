@@ -1,7 +1,8 @@
 import { Router } from "express"
 import employeeController from "../controllers/employeeController"
-import { check, query } from "express-validator"
 import db from "../db/models"
+import validateFileUpload from "../middleware/validateFileUpload"
+import { check, query } from "express-validator"
 import { Op } from "sequelize"
 
 const employeeRouter = Router()
@@ -18,7 +19,7 @@ employeeRouter.get(
 
 // Route Post Create Karyawan
 employeeRouter.post(
-   '/employees',
+   '/employee',
    [
       check('nama').isString().withMessage('Invalid nama').notEmpty().withMessage('Nama wajib diisi'),
       check('nomor').isInt().withMessage('Invalid nomor')
@@ -32,6 +33,14 @@ employeeRouter.post(
          }),
       check('jabatan').isString().withMessage('Invalid jabatan').notEmpty().withMessage('Jabatan wajib diisi'),
       check('departemen').isString().withMessage('Invalid departemen').notEmpty().withMessage('Departemen wajib diisi'),
+      check('foto').custom(async (value, { req }) => {
+         if (req.files) {
+            const validate = validateFileUpload.validateImageUpload(req.files.foto, 'image')
+            if (validate) {
+               throw new Error(validate)
+            }
+         }
+      }),
       check('status').isString().withMessage('Invalid status')
          .isIn(['tetap', 'kontrak', 'probation'])
          .withMessage('Status harus tetap, kontrak atau probation')
@@ -73,6 +82,16 @@ employeeRouter.put(
          }),
       check('jabatan').isString().withMessage('Invalid jabatan').notEmpty().withMessage('Jabatan wajib diisi'),
       check('departemen').isString().withMessage('Invalid departemen').notEmpty().withMessage('Departemen wajib diisi'),
+      check('foto').custom(async (value, { req }) => {
+         if (req.files) {
+            const validate = validateFileUpload.validateImageUpload(req.files.foto, 'image')
+            if (validate) {
+               throw new Error(validate)
+            }
+         } else if (value) {
+            return true
+         }
+      }),
       check('status').isString().withMessage('Invalid status')
          .isIn(['tetap', 'kontrak', 'probation'])
          .withMessage('Status harus tetap, kontrak atau probation')
