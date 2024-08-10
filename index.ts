@@ -34,6 +34,7 @@ app.get('/', (req: Request, res: Response) => {
    })
 })
 
+app.use('/uploads', express.static('uploads'))
 app.use('/api/v1', employeeRouter)
 
 export default app

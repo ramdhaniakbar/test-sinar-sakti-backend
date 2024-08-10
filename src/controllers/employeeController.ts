@@ -7,6 +7,7 @@ import { UploadedFile } from "express-fileupload"
 import path from "path"
 import fs from "fs"
 import moment from "moment"
+import { Op } from "sequelize"
 
 const getAllEmployees = async (req: Request, res: Response) => {
   //---- Validation
@@ -18,6 +19,7 @@ const getAllEmployees = async (req: Request, res: Response) => {
     let limit: number = 10
     let page: number = 1
     let orderBy = []
+    let whereQuery: any = {}
 
     if (typeof req.query.limit == "string") {
       const parseLimit = parseInt(req.query.limit)
@@ -38,11 +40,26 @@ const getAllEmployees = async (req: Request, res: Response) => {
       orderBy.push(["id", "DESC"])
     }
 
+    //--- filter by departemen
+    if (req.query.departemen) {
+      whereQuery.departemen = {
+        [Op.in]: (req.query.departemen as string).split(',')
+      }
+    }
+
+    //--- filter by status
+    if (req.query.status) {
+      whereQuery.status = {
+        [Op.in]: (req.query.status as string).split(',')
+      }
+    }
+
     // query table
     const employees = await db.Employee.findAndCountAll({
       order: orderBy,
       limit: limit,
       offset: limit * (page - 1),
+      where: whereQuery,
       distinct: true,
     })
 
