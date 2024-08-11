@@ -290,7 +290,6 @@ const importFileCSV = async (req: Request, res: Response) => {
     "status",
   ]
 
-  // Create a stream for parsing CSV
   const stream = parse<EmployeeType, EmployeeType>({
     headers: [
       "nama",
