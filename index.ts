@@ -7,6 +7,7 @@ import { Application, Request, Response } from "express"
 import path from "path"
 // Routes
 import employeeRouter from "./src/routes/employeeRouter"
+import dashboardRouter from './src/routes/dashboardRouter'
 
 dotenv.config()
 
@@ -37,5 +38,6 @@ app.get('/', (req: Request, res: Response) => {
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 app.use('/api/v1', employeeRouter)
+app.use('/api/v1', dashboardRouter)
 
 export default app
