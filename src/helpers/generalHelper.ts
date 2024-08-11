@@ -1,6 +1,5 @@
 import { writeToBuffer } from "fast-csv"
 import { EmployeeType, EmployeesType } from "../types/EmployeeType"
-import puppeteer from "puppeteer"
 import moment from "moment"
 
 const exportToCSV = async (employees: EmployeesType) => {
@@ -86,5 +85,5 @@ const generateHTML = (employees: EmployeesType) => `
    </body>
    </html>
  `
- 
+
 export default { exportToCSV, generateHTML }
