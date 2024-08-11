@@ -10,8 +10,9 @@ import fs from "fs"
 import moment from "moment"
 import { Op } from "sequelize"
 import { parse } from "fast-csv"
-import puppeteer from "puppeteer"
-import { EmployeeType, EmployeesType } from "../types/EmployeeType"
+import { EmployeeType } from "../types/EmployeeType"
+import generalHelper from "../helpers/generalHelper"
+import * as htmlPdf from 'html-pdf';
 
 dotenv.config()
 
@@ -121,7 +122,6 @@ const createEmployee = async (req: Request, res: Response) => {
       })
 
       fileUrl = "uploads" + uploadPath.split("/uploads").pop()
-      fileUrl = uploadPath
     }
 
     employee.foto = fileUrl
@@ -347,99 +347,56 @@ const importFileCSV = async (req: Request, res: Response) => {
 }
 
 const exportFileEmployee = async (req: Request, res: Response) => {
-  const employees = await db.Employee.findAll({
-    limit: 20
-  })
+  //---- Validation
+  const validate = validationResult(req)
+  if (!validate.isEmpty()) {
+    return response.errorValidate(res, 400, validate.array())
+  }
+  try {
+    const employees = await db.Employee.findAll({
+      attributes: [
+        "nama",
+        "nomor",
+        "jabatan",
+        "departemen",
+        "tanggal_masuk",
+        "foto",
+        "status",
+      ],
+    })
 
-  console.log(process.env.DB_HOST + ':' + process.env.APP_PORT + '/' + employees[5].foto);
+    if (req.body.type == 'pdf') {
+      const htmlContent = generalHelper.generateHTML(employees);
+      const pdfBuffer = await new Promise<Buffer>((resolve, reject) => {
+        htmlPdf.create(htmlContent).toBuffer((err, buffer) => {
+          if (err) reject(err);
+          resolve(buffer);
+        });
+      });
+  
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'attachment; filename="employees.pdf"',
+        'Content-Length': pdfBuffer.length,
+      })
 
-  const pdfBuffer = await exportToPDF(employees)
+      return res.status(200).send(pdfBuffer)
+    } else {
+      const csvBuffer = await generalHelper.exportToCSV(employees)
+  
+      res.set({
+        "Content-Type": "text/csv",
+        "Content-Disposition": 'attachment; filename="employees.csv"',
+        "Content-Length": csvBuffer.length,
+      })
 
-  res.set({
-    "Content-Type": "application/pdf",
-    "Content-Disposition": 'attachment; filename="employees.pdf"',
-    "Content-Length": pdfBuffer.length,
-  })
-  return res.send(Buffer.from(pdfBuffer))
+      return res.status(200).send(csvBuffer)
+    }
+  } catch (error) {
+    console.log(error)
+    return response.errorResponse(res, 500, "Internal server error")
+  }
 }
-
-const exportToPDF = async (employees: EmployeesType) => {
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  })
-  const page = await browser.newPage()
-
-  const htmlContent = generateHTML(employees)
-  await page.setContent(htmlContent, { waitUntil: "networkidle0" })
-
-  const pdfBuffer = await page.pdf({ format: "A4" })
-
-  await browser.close()
-  return pdfBuffer
-}
-
-const generateHTML = (employees: EmployeesType) => `
-  <html>
-  <head>
-    <style>
-      body {
-        font-family: "Inter", sans-serif;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-      th, td {
-        font-size: 14px;
-        padding: 10px;
-        text-align: left;
-        border-bottom: 1px solid #ddd;
-      }
-      img {
-        width: 50px;
-        height: 50px;
-        object-fit: cover;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>User Data</h1>
-    <table>
-      <thead>
-        <tr>
-          <th>Nama</th>
-          <th>Nomor</th>
-          <th>Jabatan</th>
-          <th>Departemen</th>
-          <th>Tanggal Masuk</th>
-          <th>Foto</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${employees
-          .map(
-            (employee: EmployeeType) => `
-          <tr>
-            <td>${employee.nama}</td>
-            <td>${employee.nomor}</td>
-            <td>${employee.jabatan}</td>
-            <td>${employee.departemen}</td>
-            <td>${moment(employee.tanggal_masuk).format('YYYY-MM-DD')}</td>
-            <td>
-              <img src="${employee.foto.startsWith('https') ? employee.foto : `http://localhost:8000/uploads/${employee.foto}`}" alt="${employee.nama}" />
-            </td>
-            <td>${employee.status.charAt(0).toUpperCase() + employee.status.slice(1)}</td>
-          </tr>
-        `
-          )
-          .join("")}
-      </tbody>
-    </table>
-  </body>
-  </html>
-`
 
 export default {
   getAllEmployees,
