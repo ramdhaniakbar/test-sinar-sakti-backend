@@ -124,7 +124,7 @@ employeeRouter.delete(
 
 // Route Post Import CSV File
 employeeRouter.post(
-   '/employee/upload-csv',
+   '/employee/import-csv',
    check('file').custom(async (value, { req }) => {
       if (req.files) {
          const validate = validateFileUpload(
@@ -140,6 +140,12 @@ employeeRouter.post(
       }
    }),
    employeeController.importFileCSV
+)
+
+// Route Post Export PDF File
+employeeRouter.post(
+   '/employee/export-file',
+   employeeController.exportFileEmployee
 )
 
 export default employeeRouter

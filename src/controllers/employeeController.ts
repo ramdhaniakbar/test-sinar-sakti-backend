@@ -1,4 +1,5 @@
 import db from "../db/models"
+import dotenv from "dotenv"
 import { Request, Response } from "express"
 import response from "../helpers/responseHelper"
 import pagination from "../helpers/paginationHelper"
@@ -9,6 +10,10 @@ import fs from "fs"
 import moment from "moment"
 import { Op } from "sequelize"
 import { parse } from "fast-csv"
+import puppeteer from "puppeteer"
+import { EmployeeType, EmployeesType } from "../types/EmployeeType"
+
+dotenv.config()
 
 const getAllEmployees = async (req: Request, res: Response) => {
   //---- Validation
@@ -116,6 +121,7 @@ const createEmployee = async (req: Request, res: Response) => {
       })
 
       fileUrl = "uploads" + uploadPath.split("/uploads").pop()
+      fileUrl = uploadPath
     }
 
     employee.foto = fileUrl
@@ -275,16 +281,6 @@ const importFileCSV = async (req: Request, res: Response) => {
     fileCSV = req.files.file as UploadedFile
   }
 
-  type EmployeeRow = {
-    nama: string
-    nomor: string
-    jabatan: string
-    departemen: string
-    tanggal_masuk: Date
-    foto: string
-    status: string
-  }
-
   const results = []
   let errors: string[] = []
   const columns = [
@@ -298,7 +294,7 @@ const importFileCSV = async (req: Request, res: Response) => {
   ]
 
   // Create a stream for parsing CSV
-  const stream = parse<EmployeeRow, EmployeeRow>({
+  const stream = parse<EmployeeType, EmployeeType>({
     headers: [
       "nama",
       "nomor",
@@ -326,7 +322,7 @@ const importFileCSV = async (req: Request, res: Response) => {
       errors.push(error.message)
     })
     .on("data", async (row) => {
-      console.log('row ', row)
+      console.log("row ", row)
       results.push(row)
     })
     .on("end", async (rowCount: number) => {
@@ -341,7 +337,7 @@ const importFileCSV = async (req: Request, res: Response) => {
         response.successResponse(res, 200, "Success import csv", insertEmployee)
         return
       } else {
-        response.errorResponse(res, 500, 'Gagal import csv')
+        response.errorResponse(res, 500, "Gagal import csv")
         return
       }
     })
@@ -350,6 +346,101 @@ const importFileCSV = async (req: Request, res: Response) => {
   stream.end()
 }
 
+const exportFileEmployee = async (req: Request, res: Response) => {
+  const employees = await db.Employee.findAll({
+    limit: 20
+  })
+
+  console.log(process.env.DB_HOST + ':' + process.env.APP_PORT + '/' + employees[5].foto);
+
+  const pdfBuffer = await exportToPDF(employees)
+
+  res.set({
+    "Content-Type": "application/pdf",
+    "Content-Disposition": 'attachment; filename="employees.pdf"',
+    "Content-Length": pdfBuffer.length,
+  })
+  return res.send(Buffer.from(pdfBuffer))
+}
+
+const exportToPDF = async (employees: EmployeesType) => {
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  })
+  const page = await browser.newPage()
+
+  const htmlContent = generateHTML(employees)
+  await page.setContent(htmlContent, { waitUntil: "networkidle0" })
+
+  const pdfBuffer = await page.pdf({ format: "A4" })
+
+  await browser.close()
+  return pdfBuffer
+}
+
+const generateHTML = (employees: EmployeesType) => `
+  <html>
+  <head>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        font-size: 14px;
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+      img {
+        width: 50px;
+        height: 50px;
+        object-fit: cover;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>User Data</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Nama</th>
+          <th>Nomor</th>
+          <th>Jabatan</th>
+          <th>Departemen</th>
+          <th>Tanggal Masuk</th>
+          <th>Foto</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${employees
+          .map(
+            (employee: EmployeeType) => `
+          <tr>
+            <td>${employee.nama}</td>
+            <td>${employee.nomor}</td>
+            <td>${employee.jabatan}</td>
+            <td>${employee.departemen}</td>
+            <td>${moment(employee.tanggal_masuk).format('YYYY-MM-DD')}</td>
+            <td>
+              <img src="${employee.foto.startsWith('https') ? employee.foto : `http://localhost:8000/uploads/${employee.foto}`}" alt="${employee.nama}" />
+            </td>
+            <td>${employee.status.charAt(0).toUpperCase() + employee.status.slice(1)}</td>
+          </tr>
+        `
+          )
+          .join("")}
+      </tbody>
+    </table>
+  </body>
+  </html>
+`
+
 export default {
   getAllEmployees,
   createEmployee,
@@ -357,4 +448,5 @@ export default {
   updateEmployee,
   deleteEmployee,
   importFileCSV,
+  exportFileEmployee,
 }

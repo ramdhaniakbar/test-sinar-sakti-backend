@@ -4,6 +4,7 @@ import cors from "cors"
 import fileUpload from 'express-fileupload'
 import cookieParser from "cookie-parser"
 import { Application, Request, Response } from "express"
+import path from "path"
 // Routes
 import employeeRouter from "./src/routes/employeeRouter"
 
@@ -34,7 +35,7 @@ app.get('/', (req: Request, res: Response) => {
    })
 })
 
-app.use('/uploads', express.static('uploads'))
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 app.use('/api/v1', employeeRouter)
 
 export default app
