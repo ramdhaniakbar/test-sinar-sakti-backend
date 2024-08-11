@@ -8,6 +8,7 @@ import path from "path"
 import fs from "fs"
 import moment from "moment"
 import { Op } from "sequelize"
+import { parse } from "fast-csv"
 
 const getAllEmployees = async (req: Request, res: Response) => {
   //---- Validation
@@ -43,14 +44,14 @@ const getAllEmployees = async (req: Request, res: Response) => {
     //--- filter by departemen
     if (req.query.departemen) {
       whereQuery.departemen = {
-        [Op.in]: (req.query.departemen as string).split(',')
+        [Op.in]: (req.query.departemen as string).split(","),
       }
     }
 
     //--- filter by status
     if (req.query.status) {
       whereQuery.status = {
-        [Op.in]: (req.query.status as string).split(',')
+        [Op.in]: (req.query.status as string).split(","),
       }
     }
 
@@ -261,10 +262,99 @@ const deleteEmployee = async (req: Request, res: Response) => {
   }
 }
 
+const importFileCSV = async (req: Request, res: Response) => {
+  //---- Validation
+  const validate = validationResult(req)
+  if (!validate.isEmpty()) {
+    return response.errorValidate(res, 400, validate.array())
+  }
+
+  let fileCSV: UploadedFile
+
+  if (req.files.file) {
+    fileCSV = req.files.file as UploadedFile
+  }
+
+  type EmployeeRow = {
+    nama: string
+    nomor: string
+    jabatan: string
+    departemen: string
+    tanggal_masuk: Date
+    foto: string
+    status: string
+  }
+
+  const results = []
+  let errors: string[] = []
+  const columns = [
+    "nama",
+    "nomor",
+    "jabatan",
+    "departemen",
+    "tanggal_masuk",
+    "foto",
+    "status",
+  ]
+
+  // Create a stream for parsing CSV
+  const stream = parse<EmployeeRow, EmployeeRow>({
+    headers: [
+      "nama",
+      "nomor",
+      "jabatan",
+      "departemen",
+      "tanggal_masuk",
+      "foto",
+      "status",
+    ],
+    renameHeaders: true,
+  })
+    .validate((row) => {
+      const rowKeys = Object.keys(row)
+      console.log("row keys ", rowKeys)
+      const isValid = rowKeys.every((key) => columns.includes(key))
+
+      if (!isValid) {
+        stream.emit("error", new Error("Periksa kembali column csv anda"))
+        return false
+      }
+      return true
+    })
+    .on("error", (error: any) => {
+      console.log(error)
+      errors.push(error.message)
+    })
+    .on("data", async (row) => {
+      console.log('row ', row)
+      results.push(row)
+    })
+    .on("end", async (rowCount: number) => {
+      if (errors.length > 0) {
+        console.log(errors)
+        response.errorResponse(res, 400, errors[0])
+        return
+      }
+
+      const insertEmployee = await db.Employee.bulkCreate(results)
+      if (insertEmployee.length > 0) {
+        response.successResponse(res, 200, "Success import csv", insertEmployee)
+        return
+      } else {
+        response.errorResponse(res, 500, 'Gagal import csv')
+        return
+      }
+    })
+
+  stream.write(fileCSV.data.toString())
+  stream.end()
+}
+
 export default {
   getAllEmployees,
   createEmployee,
   getEmployee,
   updateEmployee,
   deleteEmployee,
+  importFileCSV,
 }

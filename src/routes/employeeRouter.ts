@@ -1,9 +1,9 @@
 import { Router } from "express"
 import employeeController from "../controllers/employeeController"
 import db from "../db/models"
-import validateFileUpload from "../middleware/validateFileUpload"
 import { check, query } from "express-validator"
 import { Op } from "sequelize"
+import validateFileUpload from '../middleware/validateFileUpload'
 
 const employeeRouter = Router()
 
@@ -35,13 +35,19 @@ employeeRouter.post(
       check('departemen').isString().withMessage('Invalid departemen').notEmpty().withMessage('Departemen wajib diisi'),
       check('foto').custom(async (value, { req }) => {
          if (req.files) {
-            const validate = validateFileUpload.validateImageUpload(req.files.foto, 'image')
+            const validate = validateFileUpload(
+               req.files.foto, 
+               'image', 
+               ["image/png", "image/jpeg", "image/jpg"]
+            )
             if (validate) {
                throw new Error(validate)
             }
+         } else {
+            throw new Error('Foto wajib diisi')
          }
-      }),
-      check('status').isString().withMessage('Invalid status')
+   }),
+   check('status').isString().withMessage('Invalid status')
          .isIn(['tetap', 'kontrak', 'probation'])
          .withMessage('Status harus tetap, kontrak atau probation')
          .notEmpty()
@@ -84,12 +90,18 @@ employeeRouter.put(
       check('departemen').isString().withMessage('Invalid departemen').notEmpty().withMessage('Departemen wajib diisi'),
       check('foto').custom(async (value, { req }) => {
          if (req.files) {
-            const validate = validateFileUpload.validateImageUpload(req.files.foto, 'image')
+            const validate = validateFileUpload(
+               req.files.foto, 
+               'image', 
+               ["image/png", "image/jpeg", "image/jpg"]
+            )
             if (validate) {
                throw new Error(validate)
             }
          } else if (value) {
             return true
+         } else {
+            throw new Error('Foto wajib diisi')
          }
       }),
       check('status').isString().withMessage('Invalid status')
@@ -108,6 +120,26 @@ employeeRouter.delete(
       query("id").isInt().withMessage("Invalid id query").notEmpty().withMessage("id wajib diisi"),
    ],
    employeeController.deleteEmployee
+)
+
+// Route Post Import CSV File
+employeeRouter.post(
+   '/employee/upload-csv',
+   check('file').custom(async (value, { req }) => {
+      if (req.files) {
+         const validate = validateFileUpload(
+            req.files.file,
+            'csv', 
+            ["text/csv"]
+         )
+         if (validate) {
+            throw new Error(validate)
+         }
+      } else {
+         throw new Error('File CSV wajib diisi')
+      }
+   }),
+   employeeController.importFileCSV
 )
 
 export default employeeRouter

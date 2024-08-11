@@ -1,9 +1,9 @@
 import { UploadedFile } from "express-fileupload"
 
-const validateImageUpload = (
+const validateFileUpload = (
    file: UploadedFile,
-   filename: string = 'image',
-   allowExtension: string[] = ["image/png", "image/jpeg", "image/jpg"],
+   filename: string,
+   allowExtension: string[],
    maxFileSize: number = 5
 ) => {
    //--- Validate format
@@ -17,6 +17,4 @@ const validateImageUpload = (
    }
 }
 
-export default {
-   validateImageUpload
-}
+export default validateFileUpload
