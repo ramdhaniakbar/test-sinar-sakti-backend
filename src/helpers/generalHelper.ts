@@ -86,14 +86,5 @@ const generateHTML = (employees: EmployeesType) => `
    </body>
    </html>
  `
-
-// const exportToPDF = async (employees: EmployeesType): Promise<Buffer> => {
-//    const htmlContent = generateHTML(employees);
-//    return new Promise<Buffer>((resolve, reject) => {
-//       htmlPdf.create(htmlContent).toBuffer((err, buffer) => {
-//         if (err) reject(err);
-//         resolve(buffer);
-//       });
-// }
-
+ 
 export default { exportToCSV, generateHTML }

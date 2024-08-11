@@ -1,5 +1,4 @@
 import db from "../db/models"
-import dotenv from "dotenv"
 import { Request, Response } from "express"
 import response from "../helpers/responseHelper"
 import pagination from "../helpers/paginationHelper"
@@ -13,8 +12,6 @@ import { parse } from "fast-csv"
 import { EmployeeType } from "../types/EmployeeType"
 import generalHelper from "../helpers/generalHelper"
 import * as htmlPdf from 'html-pdf';
-
-dotenv.config()
 
 const getAllEmployees = async (req: Request, res: Response) => {
   //---- Validation
