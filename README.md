@@ -9,6 +9,7 @@
 
 # How To Deploy
 - install node js: https://nodejs.org/en
+- install typescrip thttps://www.typescriptlang.org
 - Clone Project
 - Buka direktory project 
 - npm install 
@@ -23,4 +24,9 @@ npx sequelize-cli db:migrate
 # How to Run Seeder 
 ```
 npx sequelize-cli db:seed:all
+```
+
+# How to Run Application 
+```
+npm run start:dev
 ```
