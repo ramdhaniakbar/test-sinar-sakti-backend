@@ -143,9 +143,9 @@ employeeRouter.post(
 )
 
 // Route Post Export PDF File
-employeeRouter.post(
+employeeRouter.get(
    '/employee/export-file',
-   check('type').isIn(['pdf', 'csv']).withMessage('Status harus csv atau pdf').notEmpty().withMessage('Type wajib diisi'),
+   query('type').isIn(['pdf', 'csv']).withMessage('Status harus csv atau pdf').notEmpty().withMessage('Type wajib diisi'),
    employeeController.exportFileEmployee
 )
 

@@ -29,8 +29,8 @@ const generateHTML = (employees: EmployeesType) => `
          border-collapse: collapse;
        }
        th, td {
-         font-size: 14px;
-         padding: 10px;
+         font-size: 12px;
+         padding: 6px 8px;
          text-align: left;
          border-bottom: 1px solid #ddd;
        }
@@ -42,7 +42,7 @@ const generateHTML = (employees: EmployeesType) => `
      </style>
    </head>
    <body>
-     <h1>User Data</h1>
+     <h1>Data Karyawan</h1>
      <table>
        <thead>
          <tr>

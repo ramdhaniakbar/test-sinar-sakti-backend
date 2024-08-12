@@ -361,7 +361,7 @@ const exportFileEmployee = async (req: Request, res: Response) => {
       ],
     })
 
-    if (req.body.type == 'pdf') {
+    if (req.query.type == 'pdf') {
       const htmlContent = generalHelper.generateHTML(employees);
       const pdfBuffer = await new Promise<Buffer>((resolve, reject) => {
         htmlPdf.create(htmlContent).toBuffer((err, buffer) => {
