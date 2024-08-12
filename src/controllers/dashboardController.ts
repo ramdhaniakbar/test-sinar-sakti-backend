@@ -24,7 +24,7 @@ const dashboard = async (req: Request, res: Response) => {
          200, 
          'Success get dashboard', 
          {
-            data_employees: dataEmployees,
+            data_employees: dataEmployees[0],
             departemens: departemens.map((row) => row.departemen)
          }
       )
